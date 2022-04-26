@@ -10,9 +10,6 @@ Switch to `builder` user then clone the repo and apply special config:
 ```
 su - builder
 
-git clone https://git.openwrt.org/openwrt/openwrt.git
-cd openwrt
-oppure
 wget https://github.com/openwrt/openwrt/archive/refs/tags/v22.03.0-rc1.tar.gz -O openwrt.tgz
 mkidr openwrt
 tar xvf openwrt.tgz --strip-components=1 -C openwrt 
