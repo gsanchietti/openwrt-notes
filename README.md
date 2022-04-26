@@ -1,4 +1,14 @@
-# Build
+# OpenWRT notes
+
+Image features:
+
+- target: x86_64
+- rootfs (squashfs) size: 900MB
+- standard kernel modules
+- support for bash, less, vim-fuller, nginx
+- rename to `Nextsecurity`
+
+## Build environment
 
 Prepare a Debian 11 machine:
 ```
@@ -33,6 +43,83 @@ make -j $(nproc) kernel_menuconfig
 make -j1 V=sc package/feeds/packages/perl/host/{clean,compile}
 make -j $(($(nproc)+1)) V=sc
 make -j1 V=sc world
+```
+
+## Publish feeds
+
+Publish feeds on Debian 11 with quick and dirty hack (do not do it on production):
+```
+apt-get install lighttpd
+system enable --now lighttpd
+chgrp builder /var/www/html
+chmod g+w /var/www/html
+```
+
+After the build, from `builder` user:
+```
+cp -r bin/targets/x86/64/packages/* /var/www/html/core/
+cp -r bin/packages/x86_64/* /var/www/html/
+```
+
+## JSON-RPC CORS
+
+Install required packages:
+```
+opkg update
+opkg install luci-mod-rpc luci-lib-ipkg
+```
+
+Patch to enable CORS:
+```diff
+# diff -u /etc/nginx/conf.d/luci.locations.ori /etc/nginx/conf.d/luci.locations
+--- /etc/nginx/conf.d/luci.locations.ori    2022-04-20 15:54:21.000000000 +0000
++++ /etc/nginx/conf.d/luci.locations    2022-04-20 15:52:31.000000000 +0000
+@@ -1,4 +1,6 @@
+ location /cgi-bin/luci {
++        add_header 'Access-Control-Allow-Origin' '*' always;
++        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
++        add_header 'Access-Control-Allow-Headers' 'content-type' always;
++
+         index  index.html;
+         include uwsgi_params;
+         uwsgi_param SERVER_ADDR $server_addr;
+@@ -6,6 +8,8 @@
+         uwsgi_pass unix:////var/run/luci-webui.socket;
+ }
+ location ~ /cgi-bin/cgi-(backup|download|upload|exec) {
++        add_header 'Access-Control-Allow-Origin' '*' always;
++
+         include uwsgi_params;
+         uwsgi_param SERVER_ADDR $server_addr;
+         uwsgi_modifier1 9;
+@@ -17,6 +21,8 @@
+ }
+ 
+ location /ubus {
++        add_header 'Access-Control-Allow-Origin' '*' always;
++
+         ubus_interpreter;
+         ubus_socket_path /var/run/ubus/ubus.sock;
+         ubus_parallel_req 2;
+```
+
+Example of simple plugin for `rpcd`:
+```
+local methods = {
+	listObjects = {
+		-- args = { type = "type" },
+		call = function(args)
+			result = {}
+			result["hosts"] = {}
+			paths, num = fs.glob("/etc/config/objects/hosts/*.ipset")
+			for path in paths do
+				name = fs.basename(path)
+				table.insert(result["hosts"], string.sub(name, 0, -7))
+			end
+			return result
+		end
+	},
+}
 ```
 
 ## netify-fwa
