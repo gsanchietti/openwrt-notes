@@ -134,8 +134,13 @@ cd netify-fwa/
 ./deploy/openwrt/package/make-package.sh 0.g$(git rev-parse --short HEAD)
 ```
 
+## MAC address discovery
+
+Publish new MAC to a socket: `socat exec:addrwatch unix-listen:/tmp/addrwatch.socat`
+Read socket: `socat unix-connect:/tmp/addrwatch.socat -`
 
 # Links
 
 - luci translations: https://forum.openwrt.org/t/solved-translation-of-packages-for-luci/30534/17
 - fw4 status:  https://forum.openwrt.org/t/firewall4-is-now-default-is-this-totally-transparent-to-users/117753/32
+- images hanging on boot: https://github.com/openwrt/openwrt/issues/9545
